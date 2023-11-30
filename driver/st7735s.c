@@ -19,14 +19,20 @@
 #include "driver/st7735s.h"
 #include "ui/gfx.h"
 
+uint8_t madctl;
+
 static void SendByte(uint8_t Data)
 {
 	uint8_t i;
 
-	for (i = 0; i < 8; i++) {
-		if (Data & 0x80U) {
+	for (i = 0; i < 8; i++)
+	{
+		if (Data & 0x80U)
+		{
 			gpio_bits_set(GPIOA, BOARD_GPIOA_LCD_SDA);
-		} else {
+		}
+		else
+		{
 			gpio_bits_reset(GPIOA, BOARD_GPIOA_LCD_SDA);
 		}
 		gpio_bits_reset(GPIOA, BOARD_GPIOA_LCD_SCL);
@@ -86,10 +92,42 @@ void ST7735S_SetPixel(uint8_t X, uint8_t Y, uint16_t Color)
 	WritePixel(Color);
 }
 
+void ST7735S_SetAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1)
+{
+	ST7735S_SendCommand(ST7735_RASET);
+	ST7735S_SendData(0x00);
+	ST7735S_SendData(x0);
+	ST7735S_SendData(0x00);
+	ST7735S_SendData(x1);
+
+	ST7735S_SendCommand(ST7735_CASET);
+	ST7735S_SendData(0x00);
+	ST7735S_SendData(y0);
+	ST7735S_SendData(0x00);
+	ST7735S_SendData(y1);
+
+	ST7735S_SendCommand(ST7735_RAMWR);
+}
+
+void ST7735S_DrawFastLine(uint8_t x, uint8_t y, uint8_t length, uint16_t colour, uint8_t rot)
+{
+	if (rot)
+	{
+		ST7735S_SetAddrWindow(x, y, x, y + length);
+	}
+	else
+	{
+		ST7735S_SetAddrWindow(x, y, x + length, y + 1);
+	}
+
+	while (length--)
+		ST7735S_SendU16(colour);
+}
+
 void ST7735S_Init(void)
 {
 	// Not used?
-	//DAT_20001118 = 0xFFFF;
+	// DAT_20001118 = 0xFFFF;
 	gColorBackground = COLOR_RGB(0, 0, 0);
 	gColorForeground = COLOR_RGB(31, 63, 31);
 
@@ -138,8 +176,12 @@ void ST7735S_Init(void)
 	ST7735S_SendData(0xEE);
 	ST7735S_SendCommand(ST7735S_CMD_VMCTR1);
 	ST7735S_SendData(0x1A);
+
 	ST7735S_SendCommand(ST7735S_CMD_MADCTL);
 	ST7735S_SendData(0xC8);
+
+	madctl = 0xC8;
+
 	ST7735S_SendCommand(ST7735S_CMD_GMCTRP1);
 	ST7735S_SendData(0x04);
 	ST7735S_SendData(0x22);
@@ -174,9 +216,55 @@ void ST7735S_Init(void)
 	ST7735S_SendData(0x01);
 	ST7735S_SendData(0x04);
 	ST7735S_SendData(0x13);
+	
 	ST7735S_SendCommand(ST7735S_CMD_COLMOD);
 	ST7735S_SendData(0x05);
+
+	ST7735S_SendCommand(ST7735S_CMD_RGBSET);
+	ST7735S_SendData(0x05);
+
 	DISPLAY_FillColor(COLOR_RGB(0, 0, 0));
 	ST7735S_SendCommand(ST7735S_CMD_DISPON);
 }
 
+void ST7735S_defineScrollArea(uint16_t x, uint16_t x2)
+{
+
+	/* tfa: top fixed area: nr of line from top of the frame mem and display) */
+	uint16_t tfa = 160 - x2 + 1;
+	/* vsa: height of the vertical scrolling area in nr of line of the frame mem
+	   (not the display) from the vertical scrolling address. the first line appears
+	   immediately after the bottom most line of the top fixed area. */
+	uint16_t vsa = x2 - x + 1;
+	/* bfa: bottom fixed are in nr of lines from bottom of the frame memory and display */
+	uint16_t bfa = x + 1;
+
+	if (tfa + vsa + bfa < 162)
+		return;
+
+	/* reset mv */
+
+	ST7735S_SendCommand(ST7735_MADCTL);
+	ST7735S_SendData(madctl & ~(1 << 5));
+
+	ST7735S_SendCommand(ST7735_SCRLAR);
+
+	ST7735S_SendU16(tfa);
+	ST7735S_SendU16(vsa);
+	ST7735S_SendU16(bfa);
+}
+
+void ST7735S_scroll(uint8_t line)
+{
+	ST7735S_SendCommand(ST7735_VSCSAD);
+	ST7735S_SendU16(line);
+}
+
+void ST7735S_normalMode(void)
+{
+	ST7735S_SendCommand(ST7735_NORON);
+
+	/* reset mv */
+	ST7735S_SendCommand(ST7735_MADCTL);
+	ST7735S_SendData(madctl);
+}

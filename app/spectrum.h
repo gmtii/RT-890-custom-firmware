@@ -17,7 +17,8 @@
 #ifndef RADIO_SPECTRUM_H
 #define RADIO_SPECTRUM_H
 
-enum {
+enum
+{
   STEPS_128,
   STEPS_64,
   STEPS_32,
