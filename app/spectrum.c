@@ -159,7 +159,7 @@ void DrawCurrentFreq(uint16_t Color)
 		gShortString[3] = '.';
 		UI_DrawSmallString(2, 20, gShortString, 7);
 
-		UI_DrawSmallString(2, 50, Mode[CurrentModulation], 2);
+		UI_DrawSmallString(2, 60, Mode[CurrentModulation], 2);
 
 		gColorForeground = Color;
 		gShortString[2] = ' ';
@@ -183,12 +183,12 @@ void DrawLabels(void)
 		gColorForeground = COLOR_FOREGROUND;
 
 		Int2Ascii(FreqMin / 10, 7);
-		ShiftShortStringRight(2, 6);
+		ShiftShortStringRight(2, 7);
 		gShortString[3] = '.';
 		UI_DrawSmallString(2, 2, gShortString, 8);
 
 		Int2Ascii(FreqMax / 10, 7);
-		ShiftShortStringRight(2, 6);
+		ShiftShortStringRight(2, 7);
 		gShortString[3] = '.';
 		UI_DrawSmallString(112, 2, gShortString, 8);
 
@@ -204,7 +204,7 @@ void DrawLabels(void)
 
 		UI_DrawSmallString(140, 72, gShortString, 3);
 
-		UI_DrawSmallString(152, 60, (bFilterEnabled) ? "F" : "U", 1);
+		UI_DrawSmallString(152, 50, (bFilterEnabled) ? "F" : "U", 1);
 
 		UI_DrawSmallString(152, 48, (bNarrow) ? "N" : "W", 1);
 
@@ -222,18 +222,12 @@ void DrawLabels(void)
 		gColorForeground = COLOR_FOREGROUND;
 
 		Int2Ascii(FreqMin / 10, 7);
-		for (uint8_t i = 6; i > 2; i--)
-		{
-			gShortString[i + 1] = gShortString[i];
-		}
+		ShiftShortStringRight(2, 7);
 		gShortString[3] = '.';
 		UI_DrawSmallString(2, 2, gShortString, 8);
 
 		Int2Ascii(FreqMax / 10, 7);
-		for (uint8_t i = 6; i > 2; i--)
-		{
-			gShortString[i + 1] = gShortString[i];
-		}
+		ShiftShortStringRight(2, 7);
 		gShortString[3] = '.';
 		UI_DrawSmallString(2, 88, gShortString, 8);
 
@@ -510,7 +504,7 @@ void CheckKeys(void)
 		case KEY_1:
 			IncrementStepIndex();
 			break;
-		case KEY_2:							// offset the waterfall gradient
+		case KEY_2: // offset the waterfall gradient
 			offset++;
 			offset %= 32;
 			break;
@@ -520,7 +514,7 @@ void CheckKeys(void)
 		case KEY_4:
 			IncrementFreqStepIndex();
 			break;
-		case KEY_5:							// switch between spectrum and waterfall
+		case KEY_5: // switch between spectrum and waterfall
 			bMode ^= 1;
 			if (bRXMode)
 			{
@@ -620,7 +614,6 @@ void RunRX(void)
 			RADIO_EndAudio();
 			return;
 		}
-
 		DrawCurrentFreq(COLOR_GREEN);
 		DELAY_WaitUS(CurrentScanDelay);
 	}
@@ -636,7 +629,6 @@ void show_spectrum()
 #define SPECTRUM_LEFT_MARGIN 0
 
 	uint32_t FreqToCheck;
-
 	CurrentFreqIndex = 0;
 	CurrentFreqIndex_old = 0;
 	CurrentFreq = FreqMin;
@@ -648,8 +640,11 @@ void show_spectrum()
 	uint16_t y1_new_minus = 0;
 
 	uint8_t spectrum_x = 0;		  // x offset
-	uint8_t spectrum_y = 10;	  // y offset
+	uint8_t spectrum_y = 12;	  // y offset
 	uint8_t spectrum_height = 40; // spectrum max. height
+
+	UI_DrawStatusIcon(139, ICON_BATTERY, true, COLOR_FOREGROUND);
+	UI_DrawBattery(false);
 
 	DrawLabels();
 
@@ -672,7 +667,7 @@ void show_spectrum()
 
 			BK4819_set_rf_frequency(FreqToCheck, true); // set the VCO/PLL
 
-			DELAY_WaitUS(CurrentScanDelay);
+			DELAY_WaitUS(CurrentScanDelay); // 700uS seems the lower delay for real rssi measures for this loop.
 
 			FreqToCheck += CurrentFreqStep;
 
@@ -746,7 +741,7 @@ void show_spectrum()
 
 			RssiValue[i] = BK4819_GetRSSI();
 
-			pixelnew[i] = ((((RssiValue[i] - 72) * 100) / 258) * .8);
+			pixelnew[i] = ((((RssiValue[i] - 72) * 100) / 258) * .8); // 2x
 
 			if (RssiValue[i] < RssiLow)
 			{
@@ -763,6 +758,8 @@ void show_spectrum()
 				CurrentFreq = FreqToCheck;
 			}
 		}
+
+		// Draw a yellow circle at the spectrum peak.
 
 		DISPLAY_drawCircle(CurrentFreqIndex_old, (pixelold[CurrentFreqIndex_old] + spectrum_y), 3, COLOR_BACKGROUND);
 
@@ -859,6 +856,8 @@ void show_waterfall(void)
 	CurrentFreqIndex = 0;
 	CurrentFreqIndex_old = 0;
 	CurrentFreq = FreqMin;
+	bResetSquelch = TRUE;
+	bRestartScan = FALSE;
 
 	scroll = 0;
 
@@ -883,7 +882,7 @@ void show_waterfall(void)
 
 			BK4819_set_rf_frequency(FreqToCheck, true); // set the VCO/PLL
 
-			DELAY_WaitUS(CurrentScanDelay + 500);
+			DELAY_WaitUS(CurrentScanDelay + 500); // waterfall loop needs more delay than the spectrum one so the +500us.
 
 			RssiValue[i] = BK4819_GetRSSI();
 
