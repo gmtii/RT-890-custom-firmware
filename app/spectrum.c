@@ -510,10 +510,9 @@ void CheckKeys(void)
 		case KEY_1:
 			IncrementStepIndex();
 			break;
-		case KEY_2:
+		case KEY_2:							// offset the waterfall gradient
 			offset++;
 			offset %= 32;
-			DrawLabels();
 			break;
 		case KEY_3:
 			IncrementModulation();
@@ -521,7 +520,7 @@ void CheckKeys(void)
 		case KEY_4:
 			IncrementFreqStepIndex();
 			break;
-		case KEY_5:
+		case KEY_5:							// switch between spectrum and waterfall
 			bMode ^= 1;
 			if (bRXMode)
 			{
@@ -630,11 +629,6 @@ void RunRX(void)
 	bRXMode = FALSE;
 }
 ////////////////////////////////////////////////////////////////
-
-uint16_t map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uint16_t out_max)
-{
-	return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
 
 void show_spectrum()
 {
@@ -798,7 +792,7 @@ void show_spectrum()
 	}
 }
 
-void show_waterfall_old()
+void show_waterfall_vertical()
 {
 	uint8_t lptr = WATERFALL_HEIGHT - waterfall_line; // get current line of "bottom" of waterfall in circular buffer
 
@@ -825,7 +819,7 @@ void show_waterfall_old()
 	waterfall_line %= WATERFALL_HEIGHT;
 }
 
-void horizontal_waterfall()
+void scroll_waterfall()
 {
 
 #define WATERFALL_RIGHT_MARGIN 0
@@ -925,7 +919,7 @@ void show_waterfall(void)
 		}
 
 		DrawCurrentFreq(COLOR_BLUE);
-		horizontal_waterfall();
+		scroll_waterfall();
 
 		CheckKeys();
 		if (bExit)
