@@ -8,8 +8,10 @@ Spectrum keys:
 
 Up   => Normal: Increase frequency range by frequency +/- (number in middle of bottom row)
         Holding on a frequency: Move up to the next frequency
+        
 Down => Normal: Decrease frequency range by frequency +/- (number in middle of bottom row)
         Holding on a frequency: Move down to the previous frequency
+        
 1    => Change number of scan steps (16, 32, 64 or 128) *Scan steps fixed to 128 or 160.
 2    => 
 3    => Change modulation (AM, FM or SSB)
