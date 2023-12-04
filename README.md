@@ -1,3 +1,31 @@
+Dual spectrum and waterfall branch.
+
+Asign spectrum functión to one side key and enter spectrum. Key 5 switches between spectrum and waterfall mode.
+
+Controls are the same as Reppad fork:
+
+Spectrum keys:
+
+Up   => Normal: Increase frequency range by frequency +/- (number in middle of bottom row)
+        Holding on a frequency: Move up to the next frequency
+Down => Normal: Decrease frequency range by frequency +/- (number in middle of bottom row)
+        Holding on a frequency: Move down to the previous frequency
+1    => Change number of scan steps (16, 32, 64 or 128) *Scan steps fixed to 128 or 160.
+2    => 
+3    => Change modulation (AM, FM or SSB)
+4    => Change step size (0.25k - 50k)
+5    => 
+6    => Inrease squelch level
+7    => Hold on current frequency
+8    => 
+9    => Decrease squelch level
+0    => Toggle filter (U = unfiltered, F = filtered)
+*    => Change scan delay (0 - 10ms)
+#    => Toggle bandwidth (W = wide, N = narrow)
+Menu => Jump to VFO mode with current frequency and settings (to allow TX)
+Exit => Exit spectrum
+
+
 # Radtel RT-890 Custom Firmware
 
 This project is an effort to improve the firmware of the Radtel RT-890 in terms of features and radio performance.
