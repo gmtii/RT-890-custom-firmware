@@ -1,3 +1,9 @@
+# Dual spectrum and waterfall version.
+
+Asign spectrum functión to one side key and enter spectrum. Key 5 switches between spectrum and waterfall mode.
+
+Controls are the same as @xawen spectrum.
+
 # Radtel RT-890 Custom Firmware
 
 This project is an effort to improve the firmware of the Radtel RT-890 in terms of features and radio performance.
