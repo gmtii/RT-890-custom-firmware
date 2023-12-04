@@ -53,8 +53,12 @@ uint32_t CurrentFreqChangeStep;
 uint8_t CurrentStepCountIndex;
 uint8_t CurrentStepCount;
 uint16_t CurrentScanDelay;
+uint16_t CurrentScanDelay;
 
-uint16_t RssiValue_v[128] = {0};
+uint16_t RssiValue[160] = {0};
+
+uint16_t pixelnew[160] = {0};
+uint16_t pixelold[160] = {0};
 
 uint16_t SquelchLevel;
 
@@ -66,11 +70,14 @@ uint8_t bRestartScan;
 uint8_t bFilterEnabled;
 uint8_t bNarrow;
 
+uint8_t bMode;
+
 uint16_t RssiLow;
 uint16_t RssiHigh;
 
 uint16_t KeyHoldTimer = 0;
 uint8_t bHold;
+
 KEY_t Key;
 KEY_t LastKey = KEY_NONE;
 
@@ -84,12 +91,6 @@ uint8_t scroll;
 #define WATERFALL_HEIGHT 1
 
 uint8_t offset = 0;
-
-uint16_t RssiValue;
-uint16_t RssiValue_old;
-
-uint16_t pixelnew[SPECTRUM_WIDTH] = {0};
-uint16_t pixelold[SPECTRUM_WIDTH] = {0};
 
 uint8_t waterfall[WATERFALL_HEIGHT][SPECTRUM_WIDTH];
 
@@ -130,88 +131,169 @@ void ShiftShortStringRight(uint8_t Start, uint8_t End)
 void DrawCurrentFreq(uint16_t Color)
 {
 
-	gColorForeground = Color;
-	Int2Ascii(CurrentFreq, 8);
-	ShiftShortStringRight(2, 6);
-	gShortString[3] = '.';
-	UI_DrawSmallString(2, 20, gShortString, 7);
+	if (bMode) // spectrum
+	{
+		gColorForeground = Color;
+		Int2Ascii(CurrentFreq, 8);
+		ShiftShortStringRight(2, 6);
+		gShortString[3] = '.';
+		UI_DrawString(40, 92, gShortString, 8);
 
-	UI_DrawSmallString(2, 50, Mode[CurrentModulation], 2);
+		UI_DrawSmallString(108, 82, Mode[CurrentModulation], 2);
 
-	gColorForeground = Color;
-	gShortString[2] = ' ';
-	Int2Ascii(SquelchLevel, (SquelchLevel < 100) ? 2 : 3);
-	UI_DrawSmallString(2, 40, gShortString, 3);
+		gColorForeground = Color;
+		gShortString[2] = ' ';
+		Int2Ascii(SquelchLevel, (SquelchLevel < 100) ? 2 : 3);
+		UI_DrawSmallString(80, 62, gShortString, 3);
 
-	gColorForeground = COLOR_RED;
-	gShortString[2] = ' ';
-	Int2Ascii(RssiValue_v[CurrentFreqIndex], (RssiValue_v[CurrentFreqIndex] < 100) ? 2 : 3);
-	UI_DrawSmallString(25, 40, gShortString, 3);
+		gColorForeground = COLOR_RED;
+		gShortString[2] = ' ';
+		Int2Ascii(RssiValue[CurrentFreqIndex], (RssiValue[CurrentFreqIndex] < 100) ? 2 : 3);
+		UI_DrawSmallString(56, 62, gShortString, 3);
+	}
+	else
+	{
+		gColorForeground = Color;
+		Int2Ascii(CurrentFreq, 8);
+		ShiftShortStringRight(2, 6);
+		gShortString[3] = '.';
+		UI_DrawSmallString(2, 20, gShortString, 7);
+
+		UI_DrawSmallString(2, 50, Mode[CurrentModulation], 2);
+
+		gColorForeground = Color;
+		gShortString[2] = ' ';
+		Int2Ascii(SquelchLevel, (SquelchLevel < 100) ? 2 : 3);
+		UI_DrawSmallString(2, 40, gShortString, 3);
+
+		gColorForeground = COLOR_RED;
+		gShortString[2] = ' ';
+		Int2Ascii(RssiValue[CurrentFreqIndex], (RssiValue[CurrentFreqIndex] < 100) ? 2 : 3);
+		UI_DrawSmallString(25, 40, gShortString, 3);
+	}
 }
+
+////////////////////////////////////////////////////////////////
 
 void DrawLabels(void)
 {
 
-	gColorForeground = COLOR_FOREGROUND;
-
-	Int2Ascii(FreqMin / 10, 7);
-	for (uint8_t i = 6; i > 2; i--)
+	if (bMode) // Spectrum
 	{
-		gShortString[i + 1] = gShortString[i];
-	}
-	gShortString[3] = '.';
-	UI_DrawSmallString(2, 2, gShortString, 8);
+		gColorForeground = COLOR_FOREGROUND;
 
-	Int2Ascii(FreqMax / 10, 7);
-	for (uint8_t i = 6; i > 2; i--)
+		Int2Ascii(FreqMin / 10, 7);
+		ShiftShortStringRight(2, 6);
+		gShortString[3] = '.';
+		UI_DrawSmallString(2, 2, gShortString, 8);
+
+		Int2Ascii(FreqMax / 10, 7);
+		ShiftShortStringRight(2, 6);
+		gShortString[3] = '.';
+		UI_DrawSmallString(112, 2, gShortString, 8);
+
+		// gShortString[2] = ' ';
+		// Int2Ascii(CurrentStepCount, (CurrentStepCount < 100) ? 2 : 3);
+		// UI_DrawSmallString(2, 82, gShortString, 3);
+
+		UI_DrawSmallString(2, 70, StepStrings[CurrentFreqStepIndex], 5);
+
+		Int2Ascii(CurrentScanDelay / 10, 3);
+		gShortString[2] = gShortString[1];
+		gShortString[1] = '.';
+
+		UI_DrawSmallString(140, 72, gShortString, 3);
+
+		UI_DrawSmallString(152, 60, (bFilterEnabled) ? "F" : "U", 1);
+
+		UI_DrawSmallString(152, 48, (bNarrow) ? "N" : "W", 1);
+
+		UI_DrawSmallString(2, 14, (bHold) ? "H" : " ", 1);
+
+		gColorForeground = COLOR_GREY;
+
+		Int2Ascii(CurrentFreqChangeStep / 10, 5);
+		ShiftShortStringRight(0, 4);
+		gShortString[1] = '.';
+		UI_DrawSmallString(64, 2, gShortString, 6);
+	}
+	else // waterfall labels
 	{
-		gShortString[i + 1] = gShortString[i];
+		gColorForeground = COLOR_FOREGROUND;
+
+		Int2Ascii(FreqMin / 10, 7);
+		for (uint8_t i = 6; i > 2; i--)
+		{
+			gShortString[i + 1] = gShortString[i];
+		}
+		gShortString[3] = '.';
+		UI_DrawSmallString(2, 2, gShortString, 8);
+
+		Int2Ascii(FreqMax / 10, 7);
+		for (uint8_t i = 6; i > 2; i--)
+		{
+			gShortString[i + 1] = gShortString[i];
+		}
+		gShortString[3] = '.';
+		UI_DrawSmallString(2, 88, gShortString, 8);
+
+		// gShortString[2] = ' ';
+		// Int2Ascii(CurrentStepCount, (CurrentStepCount < 100) ? 2 : 3);
+		// UI_DrawSmallString(2, 72, gShortString, 3);
+
+		UI_DrawSmallString(2, 72, StepStrings[CurrentFreqStepIndex], 5);
+
+		Int2Ascii(CurrentScanDelay / 10, 3);
+		gShortString[2] = gShortString[1];
+		gShortString[1] = '.';
+
+		UI_DrawSmallString(32, 72, gShortString, 3);
+
+		UI_DrawSmallString(2, 60, (bFilterEnabled) ? "F" : "U", 1);
+
+		UI_DrawSmallString(15, 60, (bNarrow) ? "N" : "W", 1);
+
+		UI_DrawSmallString(30, 60, (bHold) ? "H" : " ", 1);
+
+		// Int2Ascii(offset, 5);
+		// UI_DrawSmallString(2, 20, gShortString, 5);
+
+		gColorForeground = COLOR_GREY;
+
+		Int2Ascii(CurrentFreqChangeStep / 10, 5);
+		for (uint8_t i = 4; i > 0; i--)
+		{
+			gShortString[i + 1] = gShortString[i];
+		}
+		gShortString[1] = '.';
+		UI_DrawSmallString(2, 30, gShortString, 6);
 	}
-	gShortString[3] = '.';
-	UI_DrawSmallString(2, 88, gShortString, 8);
-
-	// gShortString[2] = ' ';
-	// Int2Ascii(CurrentStepCount, (CurrentStepCount < 100) ? 2 : 3);
-	// UI_DrawSmallString(2, 72, gShortString, 3);
-
-	UI_DrawSmallString(25, 72, StepStrings[CurrentFreqStepIndex], 5);
-
-	UI_DrawSmallString(2, 60, (bFilterEnabled) ? "F" : "U", 1);
-
-	UI_DrawSmallString(15, 60, (bNarrow) ? "N" : "W", 1);
-
-	UI_DrawSmallString(30, 60, (bHold) ? "H" : " ", 1);
-
-	// Int2Ascii(offset, 5);
-	// UI_DrawSmallString(2, 20, gShortString, 5);
-
-	gColorForeground = COLOR_GREY;
-
-	Int2Ascii(CurrentFreqChangeStep / 10, 5);
-	for (uint8_t i = 4; i > 0; i--)
-	{
-		gShortString[i + 1] = gShortString[i];
-	}
-	gShortString[1] = '.';
-	UI_DrawSmallString(2, 30, gShortString, 6);
 }
+
 ////////////////////////////////////////////////////////////////
 
 void SetFreqMinMax(void)
 {
-	CurrentFreqChangeStep = CurrentFreqStep * (128 >> 1);
+	if (bMode)
+		CurrentFreqChangeStep = CurrentFreqStep * (160 >> 1);
+	else
+		CurrentFreqChangeStep = CurrentFreqStep * (128 >> 1);
+
 	FreqMin = FreqCenter - CurrentFreqChangeStep;
 	FreqMax = FreqCenter + CurrentFreqChangeStep;
 	FREQUENCY_SelectBand(FreqCenter);
 	BK4819_EnableFilter(bFilterEnabled);
-	RssiValue_v[CurrentFreqIndex] = 0; // Force a rescan
+	RssiValue[CurrentFreqIndex] = 0; // Force a rescan
 }
 
 ////////////////////////////////////////////////////////////////
 
 void SetStepCount(void)
 {
-	CurrentStepCount = 128 >> CurrentStepCountIndex;
+	if (bMode)
+		CurrentStepCount = 160 >> CurrentStepCountIndex;
+	else
+		CurrentStepCount = 128 >> CurrentStepCountIndex;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -238,7 +320,9 @@ void IncrementFreqStepIndex(void)
 
 void IncrementScanDelay(void)
 {
-	CurrentScanDelay = (CurrentScanDelay + 5) % 45;
+	CurrentScanDelay = (CurrentScanDelay + 250) % 3000;
+	if (!CurrentScanDelay)
+		CurrentScanDelay = 250;
 	DrawLabels();
 }
 
@@ -257,6 +341,8 @@ void ChangeCenterFreq(uint8_t Up)
 	SetFreqMinMax();
 	DrawLabels();
 }
+
+////////////////////////////////////////////////////////////////
 
 void ChangeHoldFreq(uint8_t Up)
 {
@@ -368,6 +454,9 @@ void StopSpectrum(void)
 	UI_DrawMain(false);
 }
 
+void show_waterfall(void);
+void show_spectrum(void);
+
 ////////////////////////////////////////////////////////////////
 
 void CheckKeys(void)
@@ -433,6 +522,21 @@ void CheckKeys(void)
 			IncrementFreqStepIndex();
 			break;
 		case KEY_5:
+			bMode ^= 1;
+			if (bRXMode)
+			{
+				RADIO_EndAudio();
+				bRXMode = FALSE;
+			}
+			bResetSquelch = TRUE;
+			bRestartScan = TRUE;
+			SetFreqMinMax();
+			DELAY_WaitMS(500);
+			ST7735S_Init();
+			if (bMode)
+				show_spectrum();
+			else
+				show_waterfall();
 			break;
 		case KEY_6:
 			ChangeSquelchLevel(TRUE);
@@ -442,8 +546,6 @@ void CheckKeys(void)
 			DrawLabels();
 			break;
 		case KEY_8:
-			RADIO_EndAudio();
-			bRXMode = FALSE;
 			break;
 		case KEY_9:
 			ChangeSquelchLevel(FALSE);
@@ -510,9 +612,9 @@ void RunRX(void)
 	bRXMode = TRUE;
 	Spectrum_StartAudio();
 
-	while (RssiValue_v[CurrentFreqIndex] > SquelchLevel)
+	while (RssiValue[CurrentFreqIndex] > SquelchLevel)
 	{
-		RssiValue_v[CurrentFreqIndex] = BK4819_GetRSSI();
+		RssiValue[CurrentFreqIndex] = BK4819_GetRSSI();
 		CheckKeys();
 		if (bExit)
 		{
@@ -520,8 +622,8 @@ void RunRX(void)
 			return;
 		}
 
-		// show_horizontal_waterfall();
-		DELAY_WaitMS(5);
+		DrawCurrentFreq(COLOR_GREEN);
+		DELAY_WaitUS(CurrentScanDelay);
 	}
 
 	RADIO_EndAudio();
@@ -536,10 +638,16 @@ uint16_t map(uint16_t x, uint16_t in_min, uint16_t in_max, uint16_t out_min, uin
 
 void show_spectrum()
 {
-#define SPECTRUM_RIGHT_MARGIN 2
-#define SPECTRUM_LEFT_MARGIN 2
+#define SPECTRUM_RIGHT_MARGIN 0
+#define SPECTRUM_LEFT_MARGIN 0
 
 	uint32_t FreqToCheck;
+
+	CurrentFreqIndex = 0;
+	CurrentFreqIndex_old = 0;
+	CurrentFreq = FreqMin;
+	bResetSquelch = TRUE;
+	bRestartScan = FALSE;
 
 	uint16_t y_old, y_new, y1_new, y1_old;
 	uint16_t y1_old_minus = 0;
@@ -549,92 +657,148 @@ void show_spectrum()
 	uint8_t spectrum_y = 10;	  // y offset
 	uint8_t spectrum_height = 40; // spectrum max. height
 
-	uint8_t i;
+	DrawLabels();
 
-	FreqToCheck = FreqMin;
-
-	for (i = SPECTRUM_LEFT_MARGIN; i < SPECTRUM_WIDTH - SPECTRUM_RIGHT_MARGIN; i++)
+	while (1)
 	{
 
-		FreqToCheck += CurrentFreqStep;
+		FreqToCheck = FreqMin;
+		bRestartScan = TRUE;
 
-		BK4819_set_rf_frequency(FreqToCheck, true); // set the VCO/PLL
-
-		// moving window - weighted average of 5 points of the spectrum to smooth spectrum in the frequency domain
-		// weights:  x: 50% , x-1/x+1: 36%, x+2/x-2: 14%
-
-		y_new = pixelnew[i] * 0.5 + pixelnew[i - 1] * 0.18 + pixelnew[i + 1] * 0.18 + pixelnew[i - 2] * 0.07 + pixelnew[i + 2] * 0.07;
-		y_old = pixelold[i] * 0.5 + pixelold[i - 1] * 0.18 + pixelold[i + 1] * 0.18 + pixelold[i - 2] * 0.07 + pixelold[i + 2] * 0.07;
-
-		if (y_old > (spectrum_height - 1))
+		for (uint8_t i = SPECTRUM_LEFT_MARGIN; i < SPECTRUM_WIDTH - SPECTRUM_RIGHT_MARGIN; i++)
 		{
-			y_old = (spectrum_height - 1);
-		}
 
-		if (y_new > (spectrum_height - 1))
-		{
-			y_new = (spectrum_height - 1);
-		}
+			if (bRestartScan)
+			{
+				bRestartScan = FALSE;
+				RssiLow = 330;
+				RssiHigh = 72;
+				i = SPECTRUM_LEFT_MARGIN;
+			}
 
-		if (y_old < 0)
-			y_old = 0;
-		if (y_new < 0)
-			y_new = 0;
+			BK4819_set_rf_frequency(FreqToCheck, true); // set the VCO/PLL
 
-		y1_old = y_old + spectrum_y;
-		y1_new = y_new + spectrum_y;
+			DELAY_WaitUS(CurrentScanDelay);
 
-		if (i == SPECTRUM_LEFT_MARGIN)
-		{
-			y1_old_minus = y1_old;
+			FreqToCheck += CurrentFreqStep;
+
+			// moving window - weighted average of 5 points of the spectrum to smooth spectrum in the frequency domain
+			// weights:  x: 50% , x-1/x+1: 36%, x+2/x-2: 14%
+
+			y_new = pixelnew[i]; // * 0.5 + pixelnew[i - 1] * 0.18 + pixelnew[i + 1] * 0.18 + pixelnew[i - 2] * 0.07 + pixelnew[i + 2] * 0.07;
+			y_old = pixelold[i]; // * 0.5 + pixelold[i - 1] * 0.18 + pixelold[i + 1] * 0.18 + pixelold[i - 2] * 0.07 + pixelold[i + 2] * 0.07;
+
+			if (y_old > (spectrum_height - 1))
+			{
+				y_old = (spectrum_height - 1);
+			}
+
+			if (y_new > (spectrum_height - 1))
+			{
+				y_new = (spectrum_height - 1);
+			}
+
+			if (y_old < 0)
+				y_old = 0;
+			if (y_new < 0)
+				y_new = 0;
+
+			y1_old = y_old + spectrum_y;
+			y1_new = y_new + spectrum_y;
+
+			if (i == SPECTRUM_LEFT_MARGIN)
+			{
+				y1_old_minus = y1_old;
+				y1_new_minus = y1_new;
+			}
+			if (i == SPECTRUM_WIDTH - SPECTRUM_RIGHT_MARGIN)
+			{
+				y1_old_minus = y1_old;
+				y1_new_minus = y1_new;
+			}
+
+			// DELETE OLD LINE/POINT
+			if (y1_old - y1_old_minus > 1)
+			{ // plot line upwards
+				ST7735S_DrawFastLine(i + spectrum_x, y1_old_minus + 1, y1_old - y1_old_minus, COLOR_BACKGROUND, 1);
+			}
+			else if (y1_old - y1_old_minus < -1)
+			{ // plot line downwards
+				ST7735S_DrawFastLine(i + spectrum_x, y1_old, y1_old_minus - y1_old, COLOR_BACKGROUND, 1);
+			}
+			else
+			{
+				ST7735S_SetPixel(i + spectrum_x, y1_old, COLOR_BACKGROUND); // delete old pixel
+			}
+
+			// DRAW NEW LINE/POINT
+			if (y1_new - y1_new_minus > 1)
+			{ // plot line upwards
+				ST7735S_DrawFastLine(i + spectrum_x, y1_new_minus + 1, y1_new - y1_new_minus, COLOR_GREEN, 1);
+			}
+			else if (y1_new - y1_new_minus < -1)
+			{ // plot line downwards
+				ST7735S_DrawFastLine(i + spectrum_x, y1_new, y1_new_minus - y1_new, COLOR_GREEN, 1);
+			}
+			else
+			{
+				ST7735S_SetPixel(i + spectrum_x, y1_new, COLOR_GREEN); // write new pixel
+			}
+
 			y1_new_minus = y1_new;
-		}
-		if (i == SPECTRUM_WIDTH - SPECTRUM_RIGHT_MARGIN)
-		{
 			y1_old_minus = y1_old;
-			y1_new_minus = y1_new;
+
+			pixelold[i] = pixelnew[i];
+
+			RssiValue[i] = BK4819_GetRSSI();
+
+			pixelnew[i] = ((((RssiValue[i] - 72) * 100) / 258) * .8);
+
+			if (RssiValue[i] < RssiLow)
+			{
+				RssiLow = RssiValue[i];
+			}
+			else if (RssiValue[i] > RssiHigh)
+			{
+				RssiHigh = RssiValue[i];
+			}
+
+			if (RssiValue[i] > RssiValue[CurrentFreqIndex] && !bHold)
+			{
+				CurrentFreqIndex = i;
+				CurrentFreq = FreqToCheck;
+			}
 		}
 
-		// DELETE OLD LINE/POINT
-		if (y1_old - y1_old_minus > 1)
-		{ // plot line upwards
-			ST7735S_DrawFastLine(i + spectrum_x, y1_old_minus + 1, y1_old - y1_old_minus, COLOR_BACKGROUND, 1);
-		}
-		else if (y1_old - y1_old_minus < -1)
-		{ // plot line downwards
-			ST7735S_DrawFastLine(i + spectrum_x, y1_old, y1_old_minus - y1_old, COLOR_BACKGROUND, 1);
-		}
-		else
+		DISPLAY_drawCircle(CurrentFreqIndex_old, (pixelold[CurrentFreqIndex_old] + spectrum_y), 3, COLOR_BACKGROUND);
+
+		CurrentFreqIndex_old = CurrentFreqIndex;
+		DISPLAY_drawCircle(CurrentFreqIndex, (pixelnew[CurrentFreqIndex] + spectrum_y), 3, COLOR_RGB(255, 255, 0));
+
+		if (bResetSquelch)
 		{
-			ST7735S_SetPixel(i + spectrum_x, y1_old, COLOR_BACKGROUND); // delete old pixel
+			bResetSquelch = FALSE;
+			SquelchLevel = RssiHigh + 5;
 		}
 
-		// DRAW NEW LINE/POINT
-		if (y1_new - y1_new_minus > 1)
-		{ // plot line upwards
-			ST7735S_DrawFastLine(i + spectrum_x, y1_new_minus + 1, y1_new - y1_new_minus, COLOR_GREEN, 1);
-		}
-		else if (y1_new - y1_new_minus < -1)
-		{ // plot line downwards
-			ST7735S_DrawFastLine(i + spectrum_x, y1_new, y1_new_minus - y1_new, COLOR_GREEN, 1);
-		}
-		else
+		if (RssiValue[CurrentFreqIndex] > SquelchLevel)
 		{
-			ST7735S_SetPixel(i + spectrum_x, y1_new, COLOR_GREEN); // write new pixel
+			BK4819_set_rf_frequency(CurrentFreq, TRUE);
+			DELAY_WaitUS(CurrentScanDelay);
+			RunRX();
 		}
 
-		y1_new_minus = y1_new;
-		y1_old_minus = y1_old;
+		DrawCurrentFreq(COLOR_BLUE);
 
-		RssiValue = 0.6 * BK4819_GetRSSI() + 0.4 * RssiValue_old;
-		RssiValue_old = RssiValue;
-
-		pixelold[i] = pixelnew[i];
-		pixelnew[i] = (((RssiValue - 72) * 100) / 258) * 0.8 - offset;
+		CheckKeys();
+		if (bExit)
+		{
+			return;
+		}
 	}
 }
 
-void show_waterfall()
+void show_waterfall_old()
 {
 	uint8_t lptr = WATERFALL_HEIGHT - waterfall_line; // get current line of "bottom" of waterfall in circular buffer
 
@@ -661,31 +825,7 @@ void show_waterfall()
 	waterfall_line %= WATERFALL_HEIGHT;
 }
 
-void Spectrum_Loop_s()
-{
-
-	// uint32_t FreqToCheck;
-
-	// while (1)
-	// {
-
-	// 	FreqToCheck = FreqMin;
-	// 	CurrentFreqIndex = 0;
-	// 	CurrentFreq = FreqMin;
-
-	// 	show_spectrum();
-
-	// 	CheckKeys();
-	// 	if (bExit)
-	// 	{
-	// 		return;
-	// 	}
-
-	// 	DrawCurrentFreq(COLOR_BLUE);
-	//}
-}
-
-void show_horizontal_waterfall()
+void horizontal_waterfall()
 {
 
 #define WATERFALL_RIGHT_MARGIN 0
@@ -704,7 +844,7 @@ void show_horizontal_waterfall()
 
 	for (uint8_t i = 0; i < 127; i++)
 	{
-		uint16_t wf = (waterfall_rainbow[RssiValue_v[i] - RssiLow - offset]);
+		uint16_t wf = (waterfall_rainbow[RssiValue[i] - RssiLow - offset]);
 		ST7735S_SendU16(wf); // write to screen using waterfall color from palette
 	}
 
@@ -719,15 +859,12 @@ void show_horizontal_waterfall()
 	ST7735S_SetPixel(52, CurrentFreqIndex, COLOR_GREY);
 }
 
-void Spectrum_Loop(void)
+void show_waterfall(void)
 {
-
 	uint32_t FreqToCheck;
 	CurrentFreqIndex = 0;
 	CurrentFreqIndex_old = 0;
 	CurrentFreq = FreqMin;
-	bResetSquelch = TRUE;
-	bRestartScan = FALSE;
 
 	scroll = 0;
 
@@ -752,20 +889,20 @@ void Spectrum_Loop(void)
 
 			BK4819_set_rf_frequency(FreqToCheck, true); // set the VCO/PLL
 
-			DELAY_WaitUS(500);
+			DELAY_WaitUS(CurrentScanDelay + 500);
 
-			RssiValue_v[i] = BK4819_GetRSSI();
+			RssiValue[i] = BK4819_GetRSSI();
 
-			if (RssiValue_v[i] < RssiLow)
+			if (RssiValue[i] < RssiLow)
 			{
-				RssiLow = RssiValue_v[i];
+				RssiLow = RssiValue[i];
 			}
-			else if (RssiValue_v[i] > RssiHigh)
+			else if (RssiValue[i] > RssiHigh)
 			{
-				RssiHigh = RssiValue_v[i];
+				RssiHigh = RssiValue[i];
 			}
 
-			if (RssiValue_v[i] > RssiValue_v[CurrentFreqIndex] && !bHold)
+			if (RssiValue[i] > RssiValue[CurrentFreqIndex] && !bHold)
 			{
 				CurrentFreqIndex = i;
 				CurrentFreq = FreqToCheck;
@@ -780,15 +917,15 @@ void Spectrum_Loop(void)
 			SquelchLevel = RssiHigh + 5;
 		}
 
-		if (RssiValue_v[CurrentFreqIndex] > SquelchLevel)
+		if (RssiValue[CurrentFreqIndex] > SquelchLevel)
 		{
 			BK4819_set_rf_frequency(CurrentFreq, TRUE);
-			DELAY_WaitMS(CurrentScanDelay);
+			DELAY_WaitUS(CurrentScanDelay);
 			RunRX();
 		}
 
 		DrawCurrentFreq(COLOR_BLUE);
-		show_horizontal_waterfall();
+		horizontal_waterfall();
 
 		CheckKeys();
 		if (bExit)
@@ -811,9 +948,10 @@ void APP_Spectrum(void)
 	CurrentFreqStep = FREQUENCY_GetStep(CurrentFreqStepIndex);
 	CurrentStepCountIndex = STEPS_128;
 	bHold = 0;
+	bMode = 1; // Spectrum or waterfall display
 	bFilterEnabled = TRUE;
 	SquelchLevel = 0;
-	CurrentScanDelay = 5;
+	CurrentScanDelay = 1000;
 
 	SetStepCount();
 	SetFreqMinMax();
@@ -827,7 +965,7 @@ void APP_Spectrum(void)
 
 	DrawLabels();
 
-	Spectrum_Loop();
+	show_spectrum();
 
 	StopSpectrum();
 }

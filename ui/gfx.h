@@ -56,6 +56,6 @@ void DISPLAY_Fill(uint8_t X0, uint8_t X1, uint8_t Y0, uint8_t Y1, uint16_t Color
 void DISPLAY_DrawRectangle0(uint8_t X, uint8_t Y, uint8_t W, uint8_t H, uint16_t Color);
 void DISPLAY_DrawRectangle1(uint8_t X, uint8_t Y, uint8_t H, uint8_t W, uint16_t Color);
 void UI_SetColors(uint8_t DarkMode);
+void DISPLAY_drawCircle(uint8_t x0, uint8_t y0, uint8_t r, uint16_t color);
 
 #endif
-

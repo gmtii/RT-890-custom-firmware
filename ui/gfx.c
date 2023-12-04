@@ -33,7 +33,8 @@ void DISPLAY_FillColor(uint16_t Color)
 	uint16_t i;
 
 	ST7735S_SetPosition(0, 0);
-	for (i = 0; i < (160 * 128); i++) {
+	for (i = 0; i < (160 * 128); i++)
+	{
 		ST7735S_SendU16(Color);
 	}
 }
@@ -42,9 +43,11 @@ void DISPLAY_Fill(uint8_t X0, uint8_t X1, uint8_t Y0, uint8_t Y1, uint16_t Color
 {
 	uint8_t y;
 
-	for (; X0 <= X1; X0++) {
+	for (; X0 <= X1; X0++)
+	{
 		ST7735S_SetPosition(X0, Y0);
-		for (y = Y0; y <= Y1; y++) {
+		for (y = Y0; y <= Y1; y++)
+		{
 			ST7735S_SendU16(Color);
 		}
 	}
@@ -62,20 +65,62 @@ void DISPLAY_DrawRectangle1(uint8_t X, uint8_t Y, uint8_t H, uint8_t W, uint16_t
 
 void UI_SetColors(uint8_t DarkMode)
 {
-	if (DarkMode) {
-		COLOR_BACKGROUND = COLOR_RGB( 0,  0,  0);
+	if (DarkMode)
+	{
+		COLOR_BACKGROUND = COLOR_RGB(0, 0, 0);
 		COLOR_FOREGROUND = COLOR_RGB(31, 63, 31);
-	} else {
-		COLOR_BACKGROUND = COLOR_RGB(31, 63, 31);
-		COLOR_FOREGROUND = COLOR_RGB( 0,  0,  0);
 	}
-	COLOR_RED   = COLOR_RGB(31,  0,  0);
-	COLOR_GREEN = COLOR_RGB( 0, 63,  0);
-	COLOR_BLUE  = COLOR_RGB( 0,  0, 31);
-	COLOR_GREY  = COLOR_RGB(16, 32, 16);
+	else
+	{
+		COLOR_BACKGROUND = COLOR_RGB(31, 63, 31);
+		COLOR_FOREGROUND = COLOR_RGB(0, 0, 0);
+	}
+	COLOR_RED = COLOR_RGB(31, 0, 0);
+	COLOR_GREEN = COLOR_RGB(0, 63, 0);
+	COLOR_BLUE = COLOR_RGB(0, 0, 31);
+	COLOR_GREY = COLOR_RGB(16, 32, 16);
 
 	gColorBackground = COLOR_BACKGROUND;
 	gColorForeground = COLOR_FOREGROUND;
 
 	DISPLAY_FillColor(COLOR_BACKGROUND);
+}
+
+// draw a circle outline
+void DISPLAY_drawCircle(uint8_t x0, uint8_t y0, uint8_t r,
+						uint16_t color)
+{
+	int16_t f = 1 - r;
+	int16_t ddF_x = 1;
+	int16_t ddF_y = -2 * r;
+	int16_t x = 0;
+	int16_t y = r;
+
+	ST7735S_SetPixel(x0, y0 + r, color);
+	ST7735S_SetPixel(x0, y0 - r, color);
+	ST7735S_SetPixel(x0 + r, y0, color);
+	ST7735S_SetPixel(x0 - r, y0, color);
+
+	while (x < y)
+	{
+		if (f >= 0)
+		{
+			y--;
+			ddF_y += 2;
+			f += ddF_y;
+		}
+		x++;
+		ddF_x += 2;
+		f += ddF_x;
+
+		ST7735S_SetPixel(x0 + x, y0 + y, color);
+		ST7735S_SetPixel(x0 - x, y0 + y, color);
+		ST7735S_SetPixel(x0 + x, y0 - y, color);
+		ST7735S_SetPixel(x0 - x, y0 - y, color);
+
+		ST7735S_SetPixel(x0 + y, y0 + x, color);
+		ST7735S_SetPixel(x0 - y, y0 + x, color);
+		ST7735S_SetPixel(x0 + y, y0 - x, color);
+		ST7735S_SetPixel(x0 - y, y0 - x, color);
+	}
 }
